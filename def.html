@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulation DEF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wall:#E3E4DF; --ink:#22262A; --muted:#5C6369; --card:#F5F5F2; --line:#C3C6C0;
+  --plate:#D2D4CE; --plate-edge:#A2A69F; --bezel:#454A4F; --key:#ECEDE9; --key-edge:#8D918B;
+  --lcd:#B3C26A; --lcd-ink:#1B250F;
+  --red:#D3242C; --amber:#E7A500; --green:#2C9A4C;
+  --cond:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Segoe UI",Roboto,Arial,sans-serif;
+  --lcdf:"VT323","Courier New",monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--wall:#1C2024;--ink:#E5E7E3;--muted:#9BA2A7;--card:#272C31;--line:#3B4147;--plate:#B9BCB5;--plate-edge:#8C908A;}
+}
+:root[data-theme="dark"]{--wall:#1C2024;--ink:#E5E7E3;--muted:#9BA2A7;--card:#272C31;--line:#3B4147;--plate:#B9BCB5;--plate-edge:#8C908A;}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--wall);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:3px solid #2B6CB0;outline-offset:2px}
+.wrap{max-width:1240px;margin:0 auto;padding:16px 14px 40px;display:grid;gap:20px}
+header.intro h1{font-family:var(--cond);font-weight:700;font-size:1.9rem;line-height:1.1;margin:0 0 4px}
+header.intro p{margin:0;color:var(--muted);max-width:70ch}
+.duo{display:grid;gap:16px}
+@media(min-width:880px){.duo{grid-template-columns:1fr 1fr;align-items:start}}
+.unit-title{font-family:var(--cond);font-weight:700;font-size:1.25rem;margin:0 0 6px}
+.main{display:grid;gap:20px}
+@media(min-width:980px){.main{grid-template-columns:1fr 380px;align-items:start}}
+.side{display:grid;gap:20px}
+
+/* Façades */
+.faceplate{background:var(--plate);border:2px solid var(--plate-edge);border-radius:6px;padding:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 var(--plate-edge);color:#22262A}
+.plate-top{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--plate-edge);padding-bottom:8px;margin-bottom:12px}
+.model{font-family:var(--cond);font-weight:700;font-size:1.1rem}
+.model small{font-weight:500;color:#555B60;font-size:.88rem;margin-left:6px}
+.screws{display:flex;gap:6px}.screws i{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#eee,#888);display:block}
+.lcd-frame{background:var(--bezel);padding:8px;border-radius:4px}
+.lcd{background:var(--lcd);color:var(--lcd-ink);font-family:var(--lcdf);font-size:1.4rem;line-height:1.05;padding:8px 10px;min-height:140px;box-shadow:inset 0 0 14px rgba(0,0,0,.25);border-radius:2px}
+.lcd div{white-space:nowrap;overflow:hidden;min-height:1.05em}
+.lcd .msg{white-space:normal}
+.bodyrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.sec-h{font-family:var(--cond);font-size:.95rem;font-weight:600;margin:0 0 6px;color:#3E4449}
+.leds{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.leds li{display:flex;align-items:center;gap:8px;font-size:.86rem;line-height:1.15}
+.led{width:13px;height:13px;border-radius:50%;flex:none;background:#8a8e88;box-shadow:inset 0 -2px 3px rgba(0,0,0,.35)}
+.led.on.r{background:var(--red);box-shadow:0 0 8px var(--red)}
+.led.on.a{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.led.on.g{background:var(--green);box-shadow:0 0 8px var(--green)}
+.blink{animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:.25}}
+.zl-grid{display:grid;grid-template-columns:auto repeat(3,1fr);gap:4px 6px;align-items:center;font-size:.78rem}
+.zl-grid .fl{color:#555B60;font-family:var(--cond);font-weight:600}
+.zl{display:flex;align-items:center;gap:4px}
+.zl .led{width:10px;height:10px}
+.ctrl{display:grid;grid-template-columns:1fr auto;gap:12px;margin-top:14px;align-items:start}
+.keys{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.key{background:var(--key);border:1px solid var(--key-edge);border-bottom-width:3px;border-radius:5px;padding:8px 7px;font-family:var(--cond);font-weight:600;font-size:.95rem;line-height:1.1;text-align:left;color:#22262A;min-height:46px;display:flex;align-items:center;gap:6px}
+.key:active,.nk:active{border-bottom-width:1px;transform:translateY(2px)}
+.key.evac{background:#F3D3D4;border-color:#A3484C}
+.key.locked{opacity:.62}
+.key.locked::after{content:"🔒";margin-left:auto;font-size:.75rem}
+.numpad{display:grid;grid-template-columns:repeat(3,38px);gap:5px}
+.nk{height:36px;background:var(--key);border:1px solid var(--key-edge);border-bottom-width:3px;border-radius:5px;font-weight:600;font-size:.95rem;color:#22262A;padding:0}
+.nk.ok{background:#CFE5D5}.nk.c{background:#F1E1B8}
+.zf{margin-top:14px;border-top:1px solid var(--plate-edge);padding-top:10px}
+.zf-grid{display:grid;grid-template-columns:1fr 34px 34px auto;gap:5px 6px;align-items:center;font-size:.85rem}
+.zf-grid .hd{font-family:var(--cond);font-weight:600;color:#555B60;font-size:.78rem;text-align:center}
+.zf-grid .hd:first-child{text-align:left}
+.zf-grid .c{display:flex;justify-content:center}
+.zfbtn{background:var(--key);border:1px solid var(--key-edge);border-bottom-width:2px;border-radius:4px;font-size:.78rem;padding:4px 8px;color:#22262A;font-family:var(--cond);font-weight:600}
+.zfbtn.locked{opacity:.62}
+
+/* Bâtiment */
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px}
+.card h2{font-family:var(--cond);font-weight:700;font-size:1.35rem;margin:0 0 2px}
+.card .sub{color:var(--muted);font-size:.92rem;margin:0 0 12px}
+.building{border:2px solid var(--muted);border-radius:4px 4px 0 0;overflow:hidden}
+.floor{border-top:1px solid var(--line);padding:10px}
+.floor:first-child{border-top:0}
+.floor.evac{animation:evacbg 1s steps(1) infinite}
+@keyframes evacbg{50%{background:rgba(211,36,44,.12)}}
+.floor-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:8px}
+.floor-head b{font-family:var(--cond);font-size:1.1rem;margin-right:auto}
+.chip{font-size:.76rem;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.attente{border-color:var(--amber);color:var(--ink);background:rgba(231,165,0,.18)}
+.chip.securite{border-color:var(--red);color:var(--ink);background:rgba(211,36,44,.15)}
+.chip.uga{border-color:var(--red);background:var(--red);color:#fff}
+.zones{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.zone{border:1px solid var(--line);border-radius:6px;padding:7px 6px;background:var(--wall)}
+.zone.fire{border-color:var(--red);box-shadow:0 0 0 2px rgba(211,36,44,.35)}
+.zone.hs{background:repeating-linear-gradient(45deg,transparent 0 6px,rgba(128,128,128,.18) 6px 12px)}
+.zone.fault{border-color:var(--amber);border-style:dashed}
+.zone-name{font-family:var(--cond);font-weight:600;font-size:.9rem;display:flex;justify-content:space-between;gap:4px}
+.zone-name em{font-style:normal;font-weight:500;color:var(--muted);font-size:.75rem}
+.pts{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;align-items:center}
+.pt{width:26px;height:26px;border-radius:50%;border:2px solid var(--muted);background:var(--card);font-size:.68rem;font-weight:600;padding:0;display:grid;place-items:center;color:var(--muted)}
+.pt.dm{border-radius:4px;background:var(--red);border-color:#8f171d;color:#fff;width:30px}
+.pt.alarm{background:var(--red);border-color:var(--red);color:#fff;animation:bl .6s steps(1) infinite}
+.pt.dm.alarm{background:#fff;color:var(--red);border-color:var(--red)}
+.zone.hs .pt{opacity:.45}
+.ground{height:10px;background:repeating-linear-gradient(90deg,var(--muted) 0 8px,transparent 8px 14px);opacity:.5}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.82rem;color:var(--muted);margin-top:10px}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend .pt{width:18px;height:18px;font-size:.55rem;cursor:default}
+
+.trainer{display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row label{font-size:.92rem;color:var(--muted);min-width:140px}
+select{font:inherit;padding:6px 8px;border-radius:5px;border:1px solid var(--line);background:var(--wall);color:var(--ink)}
+.tbtn{padding:8px 12px;border-radius:5px;border:1px solid var(--line);background:var(--wall);font-size:.92rem}
+.tbtn.active{border-color:var(--amber);background:rgba(231,165,0,.2)}
+.log{list-style:none;margin:0;padding:0;max-height:360px;overflow:auto;font-size:.88rem}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.log time{color:var(--muted);font-variant-numeric:tabular-nums}
+.log .feu,.log .evac{color:var(--red);font-weight:600}
+.log .der,.log .hs{color:#9a6d00}
+:root[data-theme="dark"] .log .der,:root[data-theme="dark"] .log .hs{color:var(--amber)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .log .der,:root:not([data-theme="light"]) .log .hs{color:var(--amber)}}
+.tag{font-family:var(--cond);font-weight:600;color:var(--muted);margin-right:4px}
+
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.ov.open{display:flex}
+.dlg{background:var(--card);color:var(--ink);border-radius:10px;padding:16px;width:min(360px,100%);max-height:90%;overflow:auto}
+.dlg h3{font-family:var(--cond);font-size:1.3rem;margin:0 0 4px}
+.dlg p{margin:0 0 10px;color:var(--muted);font-size:.9rem}
+.pick{display:grid;gap:6px}
+.pick button{display:flex;justify-content:space-between;padding:9px 10px;border-radius:6px;border:1px solid var(--line);background:var(--wall);text-align:left}
+.pick button.sel{border-color:var(--amber);background:rgba(231,165,0,.2)}
+.close{margin-top:12px;width:100%;padding:10px;border-radius:6px;border:1px solid var(--line);background:var(--wall)}
+@media (prefers-reduced-motion:reduce){.blink,.pt.alarm,.floor.evac{animation:none}}
+
+.key,.nk,.hold{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.arrows{grid-column:1/-1;display:flex;gap:5px}
+.arrows .nk{width:38px}
+.uga{border:1px solid var(--plate-edge);border-radius:5px;padding:8px;display:grid;gap:6px}
+.key.hold{position:relative;overflow:hidden}
+.key.hold .fill{position:absolute;left:0;bottom:0;height:3px;background:var(--red);width:0}
+.key.hold.holding .fill{width:100%;transition:width 3s linear}
+.note{font-size:.8rem;color:#3E4449;margin:10px 0 0;line-height:1.35}
+.topbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+
+/* ===== Habillage : boîtier gris, façade bleue, clavier ambre ===== */
+.faceplate{background:#3C6EA6;border:10px solid #B4B7B5;border-radius:8px;outline:1px solid #8D918F;
+  box-shadow:inset 0 0 0 2px #2F5A8A,0 3px 0 #8D918F;color:#EEF3F9}
+.plate-top{border-bottom-color:rgba(255,255,255,.25)}
+.model{color:#fff}.model small,.sec-h,.zl-grid .fl,.zf-grid .hd,.note{color:#D6E2F0}
+.leds li,.zl,.zf-grid span{color:#EEF3F9}
+.lcd-frame{background:#2A2F33}
+.led{background:#5A6B7E;box-shadow:inset 0 -2px 3px rgba(0,0,0,.4)}
+.key{background:#C9CCCB;border-color:#7F8483;color:#1E2833}
+.key.evac{background:#E9B7B8;border-color:#8E3A3E}
+.nk{background:#EFA84A;border-color:#A86D20;color:#2B1C08;border-radius:50%;width:38px}
+.nk.c{background:#E3D2A8;border-color:#9E8B5C}
+.arrows .nk{background:#C9CCCB;border-color:#7F8483;color:#1E2833}
+.zf{border-top-color:rgba(255,255,255,.25)}
+.zf-grid>span:not(.c){background:#BFD7EF;color:#14263A;border-radius:2px;padding:2px 6px;font-family:var(--cond);font-weight:600;font-size:.8rem}
+.zfbtn{background:#C9CCCB;border-color:#7F8483;color:#1E2833}
+.uga{border-color:rgba(255,255,255,.3);background:rgba(0,0,0,.08)}
+.screws i{background:radial-gradient(circle at 35% 35%,#f2f2f2,#7d8180)}
+
+/* ===== Tour unique : armoire claire, modules anthracite ===== */
+.tower{max-width:720px;width:100%;margin:0 auto;background:linear-gradient(90deg,#CFCBC2,#E6E2D9 12%,#E6E2D9 88%,#C5C1B8);
+  border:2px solid #9B978E;border-radius:10px 10px 4px 4px;padding:12px 14px 0;display:grid;gap:12px;box-shadow:0 6px 0 #8C887F}
+.tower-top{display:flex;align-items:center;gap:10px;font-family:var(--cond);font-weight:600;color:#4A4740;font-size:.95rem;border-bottom:1px solid #B3AFA6;padding-bottom:8px}
+.led-strip{width:46px;height:8px;border-radius:4px;background:#2C9A4C;box-shadow:0 0 6px #2C9A4C}
+.slot .unit-title{color:#3A3832;font-size:1.05rem}
+.tower-foot{display:flex;justify-content:space-between;margin:0 -14px;padding:0 24px;height:18px;background:#B8B4AB;border-top:1px solid #9B978E}
+.tower-foot span{width:60px;height:18px;background:#7D7A73;border-radius:0 0 4px 4px}
+.tower .faceplate{background:#3B4148;border:3px solid #9B978E;outline:none;border-radius:6px;box-shadow:inset 0 0 0 1px #575E66;color:#ECEFF2}
+.tower .lcd{background:#7FB3D5;color:#0E2433}
+.tower .lcd-frame{background:#1E2226}
+.tower .led{background:#59616A}
+.tower .key{background:#F4F4F2;border-color:#9AA0A6;color:#22282E}
+.tower .key.evac{background:#F1C9CA;border-color:#9C3C40}
+.tower .nk{background:#D9DEE3;border-color:#8C949C;color:#1E252C;border-radius:4px}
+.tower .nk.c{background:#F5D27A;border-color:#A6852E}
+.tower .arrows .nk{background:#F4F4F2}
+.tower .zf-grid>span:not(.c){background:#F4F4F2;color:#22282E}
+.tower .zfbtn{background:#F4F4F2}
+.tower .model small,.tower .sec-h,.tower .zl-grid .fl,.tower .zf-grid .hd,.tower .note{color:#C9D0D7}
+
+/* ===== Habillage tour : SDI bleu, CMSI vert, UGA bleu clair, zones vertes ===== */
+.tower{background:linear-gradient(90deg,#9A9DA0,#C4C7C9 10%,#C4C7C9 90%,#9A9DA0);border-color:#7E8184;box-shadow:0 6px 0 #6E7174}
+.tower-top{color:#2E3236;border-bottom-color:#8E9194}
+.slot .unit-title{color:#2E3236}
+.tower .faceplate{border:3px solid #8E9194;border-radius:4px;outline:none;color:#F1F4F8}
+.tower #sdi{background:#24439A;box-shadow:inset 0 0 0 2px #1A3478}
+.tower #sdi .lcd{background:#0B1F55;color:#EAF2FF;text-shadow:0 0 4px rgba(150,190,255,.45)}
+.tower #sdi .lcd-frame{background:#C9CDD2;padding:6px;border-radius:8px}
+.tower #sdi .key{background:#2F55B8;border-color:#152C6A;color:#fff}
+.tower #cmsi{background:#1D5C46;box-shadow:inset 0 0 0 2px #134232}
+.tower #cmsi .lcd{background:#B9D64A;color:#16230A}
+.tower #cmsi .lcd-frame{background:#C9CDD2;padding:6px;border-radius:8px}
+.tower .nk{background:#E6E8EA;border-color:#8F9498;color:#1E252C;border-radius:4px}
+.tower .nk.c{background:#F3D27A}
+.tower .arrows .nk{background:#E6E8EA}
+.tower .led{background:#4F5A66}
+.tower .model small,.tower .sec-h,.tower .zl-grid .fl,.tower .note{color:#D7E0EA}
+.fkeys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.fk{background:#E6E8EA;border:1px solid #8F9498;border-bottom-width:3px;border-radius:4px;padding:5px 4px;color:#1E252C;display:grid;line-height:1.1;font-family:var(--cond)}
+.fk b{font-size:.95rem}.fk span{font-size:.72rem;font-weight:600}
+.fk:active{border-bottom-width:1px;transform:translateY(2px)}
+.fk.locked{opacity:.6}
+.tower .mod-uga{background:#5A7FCB;box-shadow:inset 0 0 0 2px #3F62AD}
+.tower .mod-uga .uga{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35)}
+.tower .mod-uga .key{background:#F0F2F4;border-color:#6F7A86;color:#1E252C}
+.tower .mod-uga .key.evac{background:#F2B7C0;border-color:#9C3C4C}
+.tower .mod-uga .note{color:#EEF3FB}
+.tower .mod-zf{background:#1E6550;box-shadow:inset 0 0 0 2px #144838}
+.zf-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.zf-card{background:#2A7A61;border:1px solid #13483A;border-radius:3px;padding:6px 5px;display:grid;gap:6px;justify-items:center;text-align:center}
+.zf-lab{background:#F4F6F3;color:#1C2620;font-family:var(--cond);font-weight:600;font-size:.74rem;line-height:1.1;padding:4px 3px;border-radius:2px;width:100%;min-height:2.3em;display:grid;place-items:center}
+.zf-push{background:#EE9AA8;border:1px solid #9C4A58;border-bottom-width:3px;border-radius:10px;width:100%;padding:5px 2px;font-family:var(--cond);font-weight:600;font-size:.75rem;color:#3A1017}
+.zf-push:active{border-bottom-width:1px;transform:translateY(2px)}
+.zf-push.locked{opacity:.65}
+.defpad{display:grid;grid-template-columns:repeat(2,44px);gap:5px}
+.defpad .nk{width:44px;border-radius:4px}
+.defpad .ab{grid-column:1/-1;width:auto;height:auto;padding:4px;line-height:1.05;background:#F3D27A}
+.defpad .ab small{font-size:.62rem;font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="intro">
+    <h1>Simulation DEF</h1>
+    <p>Une seule tour : le module de détection (SDI) en haut, le module de mise en sécurité (CMSI) en dessous. Cliquez sur un point du bâtiment pour déclencher une alarme, puis traitez-la sur chaque module. Niveau 2 : touche Code puis 1234.</p>
+  </header>
+
+  <section class="tower" id="duo">
+    <div class="tower-top"><span class="led-strip"></span><span>Tour SSI : SDI, CMSI, évacuation et zones de fonction</span></div>
+    <div class="slot"><h2 class="unit-title">Module SDI · détection incendie</h2><div class="faceplate" id="sdi"></div></div>
+    <div class="slot"><h2 class="unit-title">Module CMSI · mise en sécurité</h2><div class="faceplate" id="cmsi"></div></div>
+    <div class="slot"><h2 class="unit-title">Module évacuation (UGA)</h2><div class="faceplate mod-uga" id="modUga"></div></div>
+    <div class="slot"><h2 class="unit-title">Modules zones de fonction</h2><div class="faceplate mod-zf" id="modZf"></div></div>
+    <div class="tower-foot"><span></span><span></span></div>
+  </section>
+
+  <div class="main">
+    <section class="card">
+      <h2>Le bâtiment</h2>
+      <p class="sub">Cliquez sur un détecteur (rond) ou un DM (carré rouge). Un DM déclenché se réarme en cliquant de nouveau dessus (clé).</p>
+      <div class="topbar" id="topbar"></div><div class="building" id="building"></div>
+      <div class="ground"></div>
+      <div class="legend">
+        <span><span class="pt">1</span>Détecteur</span>
+        <span><span class="pt dm">DM</span>Déclencheur manuel</span>
+        <span><span class="chip">Canton</span>Désenfumage de l'étage</span>
+      </div>
+    </section>
+    <div class="side">
+      <section class="card trainer">
+        <div><h2>Mode formateur</h2><p class="sub">Réglages de l'exercice et défauts à simuler.</p></div>
+        <div class="row"><label for="tempoSel">Temporisation</label>
+          <select id="tempoSel"><option value="300" selected>5 min (réel)</option><option value="60">1 min</option><option value="30">30 s</option></select></div>
+        <div class="row"><label for="dmSel">Déclencheurs manuels</label>
+          <select id="dmSel"><option value="1" selected>Avec temporisation</option><option value="0">Alarme générale immédiate</option></select></div>
+        <div class="row"><label>Défauts</label>
+          <button class="tbtn" data-tr="mains">Coupure secteur</button>
+          <button class="tbtn" data-tr="battery">Défaut batterie</button>
+          <button class="tbtn" data-tr="fault">Défaut ligne</button>
+          <button class="tbtn" data-tr="ugaf">Dérangement UGA</button></div>
+        <div class="row"><label>Exercice</label>
+          <button class="tbtn" data-tr="sound">Son activé</button>
+          <button class="tbtn" data-tr="restart">Recommencer à zéro</button></div>
+      </section>
+      <section class="card">
+        <h2>Journal des événements</h2>
+        <p class="sub">Du plus récent au plus ancien.</p>
+        <ul class="log" id="log"></ul>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="ovPick" role="dialog" aria-modal="true" aria-labelledby="pickT">
+  <div class="dlg">
+    <h3 id="pickT"></h3>
+    <p id="pickP"></p>
+    <div class="pick" id="pickList"></div>
+    <button class="close" data-close="ovPick">Fermer</button>
+  </div>
+</div>
+
+<script>
+const NF=5, NZ=3, ND=5, CODE="1234", LVL2_TIME=180;
+const pad=n=>String(n).padStart(2,"0");
+const fmt=s=>pad(Math.floor(s/60))+":"+pad(s%60);
+const ZF=[{id:"zc",lbl:"ZC BATIMENT",kind:"zc"}];
+for(let f=1;f<=NF;f++)ZF.push({id:"c"+f,lbl:`ZF${pad(f)} CANTON ${f}`,kind:"canton",floor:f});
+ZF.push({id:"m1",lbl:"MOTEUR 1 SOUF",kind:"moteur"},{id:"m2",lbl:"MOTEUR 2 EXTR",kind:"moteur"});
+let S=null;
+function init(){
+  S={points:[],zones:[],zf:{},zfHold:{},
+     lvl:{sdi:1,cmsi:1},lvlLeft:{sdi:0,cmsi:0},entry:{sdi:null,cmsi:null},msg:{sdi:"",cmsi:""},msgT:{},sel:{sdi:0,cmsi:0},
+     ev:{sdi:null,cmsi:null},menu:{sdi:false,cmsi:false},sil:{sdi:false,cmsi:false},lamp:{sdi:false,cmsi:false},
+     tempoTotal:+document.getElementById("tempoSel").value,tempoLeft:0,tempoRun:false,procAck:false,uga:false,ugaFault:false,
+     mains:true,battery:true,dmTempo:document.getElementById("dmSel").value==="1",sound:S?S.sound:true,log:[]};
+  ZF.forEach(z=>S.zf[z.id]="veille");
+  for(let f=1;f<=NF;f++)for(let z=1;z<=NZ;z++){
+    const id=(f-1)*NZ+z;
+    S.zones.push({id,floor:f,hs:false,fault:false});
+    for(let d=1;d<=ND;d++)S.points.push({zone:id,addr:d,type:"det",alarm:false});
+    S.points.push({zone:id,addr:ND+1,type:"dm",alarm:false});
+  }
+}
+const alarms=()=>S.points.filter(p=>p.alarm);
+const zoneFire=id=>S.points.some(p=>p.zone===id&&p.alarm);
+const faultZones=()=>S.zones.filter(z=>z.fault);
+const hsZones=()=>S.zones.filter(z=>z.hs);
+const derangSdi=()=>!S.mains||!S.battery||faultZones().length>0;
+const derangCmsi=()=>!S.mains||!S.battery||S.ugaFault;
+const zfActive=()=>ZF.filter(z=>S.zf[z.id]!=="veille");
+const stateTxt=(z,s)=>z.kind==="moteur"?(s==="securite"?"en marche":s==="attente"?"démarrage":"arrêt"):(s==="securite"?"en sécurité":s==="attente"?"en attente":"veille");
+
+function log(type,text,u){S.log.unshift({t:new Date(),type,text,u});if(S.log.length>300)S.log.pop();renderLog();}
+function flash(u,m){S.msg[u]=m;clearTimeout(S.msgT[u]);S.msgT[u]=setTimeout(()=>{S.msg[u]="";renderPanels();},3500);renderPanels();}
+
+/* ===== Façades ===== */
+const screws=`<span class="screws"><i></i><i></i></span>`;
+function lcd(u){return `<div class="lcd-frame"><div class="lcd" aria-live="polite"><div id="${u}-l1"></div><div id="${u}-l2"></div><div id="${u}-l3" class="msg"></div><div id="${u}-l4"></div><div id="${u}-l5"></div></div></div>`;}
+function key(u,act,ic,txt,n2,cls=""){return `<button class="key ${n2?"n2":""} ${cls}" data-u="${u}" data-act="${act}"><span>${ic}</span>${txt}${cls.includes("hold")?'<span class="fill"></span>':""}</button>`;}
+function numpad(u){
+  const ks=["1","2","3","4","5","6","7","8","9","","0","Code"];
+  return `<div class="numpad">`+ks.map(k=>k?`<button class="nk ${k==="Code"?"c":""}" data-u="${u}" data-k="${k}">${k}</button>`:"<span></span>").join("")+
+    `<div class="arrows">${[["left","◀","gauche"],["up","▲","haut"],["down","▼","bas"],["right","▶","droite"]].map(([k,s,a])=>`<button class="nk" data-u="${u}" data-k="${k}" aria-label="Flèche ${a}">${s}</button>`).join("")}</div></div>`;
+}
+function common(u){return `${key(u,"lamp","💡","Essai signalisations")}${key(u,"silence","🔕","Arrêt signaux sonores")}${key(u,"reset","↺","Réarmement",true)}${key(u,"events","📋","Événements")}${key(u,"menu","☰","Menu",true)}`;}
+document.getElementById("sdi").innerHTML=
+  `<div class="plate-top"><span class="model">SDI<small>Détection incendie</small></span>${screws}</div>${lcd("sdi")}
+   <div class="bodyrow"><div><ul class="leds" id="sdi-leds"></ul></div>
+   <div><h3 class="sec-h">Zones de détection</h3><div class="zl-grid" id="sdi-zl"></div></div></div>
+   <div class="ctrl"><div class="keys">${common("sdi")}</div>${numpad("sdi")}</div>`;
+let zfRows=`<div class="hd">Zone de fonction</div><div class="hd">Pos. séc.</div><div class="hd"></div>`;
+ZF.forEach(z=>{zfRows+=`<span>${z.lbl}</span><span class="c" id="zf-${z.id}"></span><button class="zfbtn n2" data-u="cmsi" data-act="zf" data-zf="${z.id}">Commande</button>`;});
+document.getElementById("cmsi").innerHTML=
+  `<div class="plate-top"><span class="model">CMSI<small>Mise en sécurité</small></span>${screws}</div>${lcd("cmsi")}
+   <div class="bodyrow"><div><ul class="leds" id="cmsi-leds"></ul></div>
+   <div class="uga"><h3 class="sec-h" style="margin:0">Évacuation (UGA)</h3><ul class="leds" id="uga-leds"></ul>
+     ${key("cmsi","evac","📢","Commande évacuation",false,"evac hold")}
+     ${key("cmsi","ack","✋","Acquittement processus",true)}
+     ${key("cmsi","stopevac","⏹","Arrêt évacuation",true)}</div></div>
+   <div class="ctrl"><div class="keys">${common("cmsi")}</div>${numpad("cmsi")}</div>
+   <div class="zf"><div class="zf-grid" style="grid-template-columns:1fr 54px auto">${zfRows}</div></div>
+   <p class="note">Menu (niveau 2) : flèches haut/bas pour choisir, flèche droite ou numéro pour valider, flèche gauche pour revenir. CMSI : code par A + B puis ABBA (niveau 2) ou BABA (niveau 3). F1 fil de l'eau, F2 menus, F3 résumé système, F4 USG ; ↵ valide, ← annule. Évacuation immédiate : maintenir Commande évacuation 3 secondes. Pendant la temporisation (voyant Alarme), passer au niveau 2 puis Acquittement processus pour arrêter l'évacuation automatique.</p>`;
+
+/* ===== Tour : répartition des modules ===== */
+(function(){
+  const uga=document.querySelector("#cmsi .uga"); document.getElementById("modUga").appendChild(uga);
+  const note=document.querySelector("#cmsi .note"); if(note)document.getElementById("modUga").appendChild(note);
+  const grid=document.querySelector("#cmsi .zf-grid"), wrap=document.querySelector("#cmsi .zf");
+  const cards=document.createElement("div"); cards.className="zf-cards";
+  const kids=[...grid.children].filter(el=>!el.classList.contains("hd"));
+  for(let i=0;i<kids.length;i+=3){
+    const c=document.createElement("div"); c.className="zf-card";
+    const lab=kids[i], led=kids[i+1], btn=kids[i+2];
+    lab.className="zf-lab"; btn.textContent="Commande"; btn.className="zf-push n2";
+    c.append(lab,led,btn); cards.appendChild(c);
+  }
+  document.getElementById("modZf").appendChild(cards); wrap.remove();
+  /* touches de fonction F1 à F4 sous l'écran du CMSI */
+  const f=document.createElement("div"); f.className="fkeys";
+  [["F1","fdl","Fil de l'eau"],["F2","f2","Menus"],["F3","resume","Résumé"],["F4","usg","USG"]].forEach(([k,a,t])=>{
+    const b=document.createElement("button"); b.className="fk"; b.dataset.u="cmsi"; b.dataset.act=a;
+    b.innerHTML=`<b>${k}</b><span>${t}</span>`; f.appendChild(b);
+  });
+  document.querySelector("#cmsi .lcd-frame").after(f);
+  document.querySelector("#cmsi .keys").remove();
+  const np=document.querySelector("#cmsi .numpad");
+  np.outerHTML=`<div class="defpad">${[["up","▲"],["ok","↵"],["down","▼"],["esc","←"],["A","A"],["B","B"]].map(([k,t])=>`<button class="nk" data-u="cmsi" data-k="${k}">${t}</button>`).join("")}<button class="nk ab" data-u="cmsi" data-k="AB">A + B<br><small>accès code</small></button></div>`;
+  document.querySelector("#modUga .uga").insertAdjacentHTML("beforeend",key("cmsi","silence","🔕","Arrêt signal sonore")+key("cmsi","lamp","💡","Essai signalisations")+key("cmsi","reset","↺","Réarmement",true));
+  document.querySelector("#cmsi .bodyrow").style.gridTemplateColumns="1fr";
+})();
+
+/* ===== CMSI : menus selon la notice ===== */
+const SCR={cmsi:null};
+const FAC=[{n:"FACETTE 1",l:"MODULE EVACUATION (UGA)"},{n:"FACETTE 2",l:"ZC + CANTONS DESENF."},{n:"FACETTE 3",l:"MOTEURS SOUF./EXTR."}];
+const zst=z=>{const s=S.zf[z.id];return s==="securite"?(z.kind==="moteur"?"MARCHE":"SECURITE"):s==="attente"?"COMMANDE":"VEILLE";};
+function defNode(id){
+  const info=t=>({l:t}), f=m=>()=>flash("cmsi",m);
+  switch(id){
+    case "root": return {t:"MENUS",items:[{l:"ETATS DES ZONES",go:"z"},{l:"ETATS DES FONCTIONS",go:"f"},{l:"ETATS DES FACETTES",go:"fa"},{l:"ETATS ELEM. TERMINAUX",go:"et"},{l:"EXPLOIT. ET MAINTENANCE",go:"em"},{l:"EXPLOIT. FONCTIONS CMSI",go:"cm"},{l:"IMPRESSIONS",go:"im"},{l:"LOCALISATION FACETTES",go:"lo"}]};
+    case "z":{const l=zfActive();return {t:"ETATS DES ZONES",empty:"AUCUNE ZONE EN SECURITE",items:l.map(z=>info(`${z.lbl} ${zst(z)}`))};}
+    case "f": return {t:"ETATS DES FONCTIONS",items:[info(`UGA ${S.uga?"EVACUATION":S.tempoRun?"TEMPORISATION":"VEILLE"}`),...ZF.map(z=>info(`${z.lbl} ${zst(z)}`))]};
+    case "fa": return {t:"ETATS DES FACETTES",items:[...FAC.map((x,i)=>info(`${x.n} ${i===0&&S.ugaFault?"DERANGEMENT":"NORMAL"}`)),{l:"MISE EN/HORS SERVICE",lvl:3,act:f("HORS SERVICE : MAINTENEUR")},{l:"MISE EN/HORS ESSAI",lvl:3,act:f("ESSAI : MAINTENEUR")}]};
+    case "et": return {t:"ELEMENTS TERMINAUX",items:ZF.map(z=>info(`${z.kind==="moteur"?"MOT":"DAS"} ${z.lbl} ${zst(z)}`))};
+    case "em": return {t:"EXPLOIT. ET MAINTENANCE",items:[{l:"MISE A L'HEURE",lvl:2,act:f("HEURE SYNCHRONISEE")},{l:"EFFACEMENT HISTORIQUE",lvl:3,act:()=>{S.log=[];log("info","Historique effacé (niveau 3)","cmsi");}},{l:"INFORMATIONS SYSTEME",lvl:3,act:f("SIMULATEUR DE FORMATION")}]};
+    case "cm": return {t:"EXPLOIT. FONCTIONS CMSI",items:[{l:"EVACUATION",lvl:2,act:()=>acts.evac("cmsi")},{l:"AUTRES FONCTIONS",go:"af"},{l:"REARMEMENT",lvl:2,act:()=>acts.reset("cmsi")},{l:"ACQUITTEMENT PROCESSUS",lvl:2,act:()=>acts.ack("cmsi")},
+      {l:`VEILLE ${S.veilleR?"RESTREINTE":"GENERALE"}`,lvl:2,act:()=>{S.veilleR=!S.veilleR;log("info",`Passage en veille ${S.veilleR?"restreinte":"générale"}`,"cmsi");}},{l:"ESSAI / HORS SERVICE",lvl:3,act:f("FONCTION MAINTENEUR")}]};
+    case "af": return {t:"AUTRES FONCTIONS",items:ZF.map(z=>({l:`${z.lbl} ${zst(z)}`,act:()=>{if(!commandZF(z.id,false))flash("cmsi","FONCTION DEJA ACTIVE");}}))};
+    case "im": return {t:"IMPRESSIONS",items:["CONFIGURATION","HISTORIQUE ALARMES","ELEMENTS TERMINAUX","FACETTES"].map(x=>({l:x,lvl:2,act:f("PAS D'IMPRIMANTE RACCORDEE")}))};
+    case "lo": return {t:"LOCALISATION FACETTES",items:FAC.map(x=>info(`${x.n} : ${x.l}`))};
+  }
+}
+function scrScreen(){
+  if(SCR.cmsi==="resume"){const Z=zfActive();const d=(!S.mains)+(!S.battery)+(S.ugaFault?1:0);
+    return ["RESUME SYSTEME",`DERANGEMENTS : ${d}`,`FONCTIONS EN SECURITE : ${Z.length}`,`FACETTES EN DERANG. : ${S.ugaFault?1:0}`,foot("cmsi")];}
+  return ["USG  SIGNALISATION GENERALE",`ALARME ${S.tempoRun||S.uga?"OUI":"NON"}  EVAC ${S.uga?"OUI":"NON"}`,`DERANGEMENT UGA ${S.ugaFault?"OUI":"NON"}`,`VEILLE ${S.veilleR?"RESTREINTE":"GENERALE"}${S.procAck?"  ACQUITTE":""}`,foot("cmsi")];
+}
+function closeScr(){S.menu.cmsi=false;S.ev.cmsi=null;SCR.cmsi=null;}
+function defKey(k){
+  if(k==="AB"){if(S.lvl.cmsi>1){S.lvl.cmsi=1;S.abBuf=null;log("info","Retour au niveau 1","cmsi");}else S.abBuf=S.abBuf==null?"":null;renderPanels();return true;}
+  if(k==="A"||k==="B"){
+    if(S.abBuf==null){flash("cmsi","APPUYER SUR A + B POUR LE CODE");return true;}
+    S.abBuf+=k;
+    if(S.abBuf.length===4){const c=S.abBuf;S.abBuf=null;
+      if(c==="ABBA"||c==="BABA"){S.lvl.cmsi=c==="ABBA"?2:3;S.lvlLeft.cmsi=LVL2_TIME;log("info",`Accès niveau ${S.lvl.cmsi} ouvert`,"cmsi");}
+      else flash("cmsi","CODE INCORRECT");}
+    renderPanels();return true;
+  }
+  if(k==="ok"){if(S.menu.cmsi)menuKey("cmsi","right");return true;}
+  if(k==="esc"){if(S.menu.cmsi)menuKey("cmsi","left");else{closeScr();renderPanels();}return true;}
+  return false;
+}
+
+/* ===== Terrain ===== */
+function trigger(p){
+  const z=S.zones[p.zone-1], name=p.type==="dm"?"DM":"détecteur "+p.addr;
+  if(p.alarm){
+    if(p.type==="dm"){p.alarm=false;log("info",`DM zone ${pad(z.id)} réarmé à la clé`);renderAll();}
+    else flash("sdi","Détecteur en alarme : réarmer le module SDI");
+    return;
+  }
+  if(z.hs){flash("sdi",`Zone ${pad(z.id)} hors service`);log("hs",`Action sur ${name}, zone ${pad(z.id)} hors service : ignorée`,"sdi");return;}
+  if(z.fault){flash("sdi",`Zone ${pad(z.id)} en défaut ligne`);log("der",`Action sur ${name}, zone ${pad(z.id)} en défaut : non transmise`,"sdi");return;}
+  p.alarm=true;S.sil.sdi=false;S.sil.cmsi=false;S.sel.sdi=0;S.ev.sdi=null;S.ev.cmsi=null;
+  log("feu",`Feu zone ${pad(z.id)}, étage ${z.floor}, ${name}`,"sdi");
+  ["zc","c"+z.floor,"m1","m2"].forEach(id=>commandZF(id,true));
+  if(!S.uga){
+    if(p.type==="dm"&&!S.dmTempo)startUGA("DM sans temporisation");
+    else if(!S.tempoRun){S.tempoRun=true;S.procAck=false;S.tempoLeft=S.tempoTotal;log("tempo",`Alarme restreinte, temporisation lancée (${fmt(S.tempoTotal)})`,"cmsi");}
+  }
+  renderAll();
+}
+function commandZF(id,auto){
+  if(S.zf[id]!=="veille")return false;
+  const z=ZF.find(x=>x.id===id);
+  S.zf[id]="attente";
+  log("cmsi",`${z.lbl} : ordre ${z.kind==="moteur"?"de démarrage":"de mise en sécurité"} (${auto?"automatique":"manuel"})`,"cmsi");
+  setTimeout(()=>{if(S.zf[id]==="attente"){S.zf[id]="securite";log("cmsi",`${z.lbl} : ${z.kind==="moteur"?"moteur en marche":"position de sécurité atteinte"}`,"cmsi");renderAll();}},3000);
+  return true;
+}
+function startUGA(reason){S.uga=true;S.tempoRun=false;log("evac",`Évacuation générale déclenchée (${reason})`,"cmsi");}
+
+/* ===== Commandes ===== */
+const acts={
+  silence(u){
+    const sounding=u==="sdi"?(!S.sil.sdi&&(alarms().length||derangSdi())):(!S.sil.cmsi&&(S.tempoRun||derangCmsi()));
+    if(!sounding){flash(u,"Aucun signal sonore en cours");return;}
+    S.sil[u]=true;log("info","Arrêt signaux sonores",u);
+  },
+  lamp(u){S.lamp[u]=true;renderPanels();setTimeout(()=>{S.lamp[u]=false;renderPanels();},3000);log("info","Essai signalisations",u);},
+  events(u){
+    if(S.ev[u]!==null){S.ev[u]=null;return;}
+    if(!evList(u).length){flash(u,"Aucun événement");return;}
+    S.ev[u]=0;S.menu[u]=false;
+  },
+  menu(u){
+    S.menu[u]=S.menu[u]?false:[{id:"root",idx:0}];S.ev[u]=null;
+  },
+  reset(u){
+    if(u==="sdi"){
+      const dm=S.points.find(p=>p.alarm&&p.type==="dm");
+      if(dm){flash(u,`DM zone ${pad(dm.zone)} enclenché : réarmer à la clé`);return;}
+      if(!alarms().length){flash(u,"Rien à réarmer");return;}
+      S.points.forEach(p=>p.alarm=false);S.tempoRun=false;S.sil.sdi=false;
+      log("info","Module SDI réarmé : détection en veille",u);
+    }else{
+      if(alarms().length){flash(u,"Réarmer d'abord le module SDI");return;}
+      if(S.uga){flash(u,"Arrêter l'évacuation avant de réarmer");return;}
+      if(!zfActive().length&&!S.procAck){flash(u,"Rien à réarmer");return;}
+      ZF.forEach(z=>S.zf[z.id]="veille");S.procAck=false;S.tempoRun=false;S.sil.cmsi=false;
+      log("info","Module CMSI réarmé : DAS en veille, moteurs à l'arrêt",u);
+    }
+  },
+  evac(u){if(S.uga){flash(u,"Évacuation déjà en cours");return;}startUGA("commande manuelle");},
+  ack(u){
+    if(!S.tempoRun){flash(u,"Aucune temporisation en cours");return;}
+    S.tempoRun=false;S.procAck=true;S.sil.cmsi=true;
+    log("tempo",`Acquittement processus (reste ${fmt(S.tempoLeft)}) : levée de doute`,u);
+  },
+  stopevac(u){if(!S.uga){flash(u,"Pas d'évacuation en cours");return;}S.uga=false;log("evac","Arrêt de l'évacuation générale",u);},
+  zf(u,b){if(!commandZF(b.dataset.zf,false))flash(u,"Fonction déjà active");}
+};
+/* ===== Arborescence du menu ===== */
+const zl=z=>`ZONE ${pad(z.id)} ETAGE ${z.floor}`;
+function menuNode(u,id){
+  if(u==="cmsi")return defNode(id);
+  const info=t=>({l:t});
+  switch(id){
+    case "root": return {t:"MENU PRINCIPAL",items:(u==="sdi"
+      ?[{l:"DETECTION INCENDIE",go:"det"}]
+      :[{l:"MISE EN SECURITE",go:"ms"}]).concat([{l:"DERANGEMENTS",go:"der"},{l:"HISTORIQUE",go:"hist"},{l:"DATE ET HEURE",go:"date"},{l:"MAINTENANCE",go:"n3"}])};
+    case "det": return {t:"DETECTION INCENDIE",items:[{l:"MISE HORS SERVICE",go:"hsOff"},{l:"MISE EN SERVICE",go:"hsOn"},{l:"RECAPITULATIF",go:"recap"},{l:"ETAT DES ZONES",go:"etat"}]};
+    case "hsOff":{const l=S.zones.filter(z=>!z.hs);return {t:"METTRE HORS SERVICE",empty:"AUCUNE ZONE EN SERVICE",items:l.map(z=>({l:zl(z),act:()=>{z.hs=true;log("hs",`Zone ${pad(z.id)} mise hors service (menu)`,"sdi");flash(u,`ZONE ${pad(z.id)} HORS SERVICE`);}}))};}
+    case "hsOn":{const l=hsZones();return {t:"METTRE EN SERVICE",empty:"AUCUNE ZONE HORS SERVICE",items:l.map(z=>({l:zl(z),act:()=>{z.hs=false;log("hs",`Zone ${pad(z.id)} remise en service (menu)`,"sdi");flash(u,`ZONE ${pad(z.id)} EN SERVICE`);}}))};}
+    case "recap":{const it=[...hsZones().map(z=>info(`HS  ${zl(z)}`)),...faultZones().map(z=>info(`DEF ${zl(z)}`))];return {t:`RECAP ${hsZones().length} HS / ${faultZones().length} DEF`,empty:"TOUTES ZONES EN SERVICE",items:it};}
+    case "etat": return {t:"ETAT DES ZONES",items:S.zones.map(z=>info(`Z${pad(z.id)} ${zoneFire(z.id)?"FEU":z.hs?"HORS SERVICE":z.fault?"DEFAUT LIGNE":"VEILLE"}`))};
+    case "ms": return {t:"MISE EN SECURITE",items:ZF.map(z=>({l:`${z.lbl} ${S.zf[z.id]==="veille"?"":"*"}`,act:()=>{if(!commandZF(z.id,false))flash(u,"FONCTION DEJA ACTIVE");}}))};
+    case "der":{const it=[];if(!S.mains)it.push(info("DEFAUT SECTEUR"));if(!S.battery)it.push(info("DEFAUT BATTERIES"));
+      if(u==="sdi")faultZones().forEach(z=>it.push(info(`DEFAUT LIGNE ${zl(z)}`)));else if(S.ugaFault)it.push(info("DERANGEMENT UGA"));
+      return {t:`DERANGEMENTS (${it.length})`,empty:"AUCUN DERANGEMENT",items:it};}
+    case "hist": return {t:"HISTORIQUE",empty:"AUCUN EVENEMENT",items:evList(u).map(e=>info(`${hhmmss(e.t)} ${e.text.toUpperCase()}`))};
+    case "date":{const d=new Date();return {t:"DATE ET HEURE",items:[info(`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}  ${hhmmss(d)}`),info("REGLAGE : NIVEAU 3")]};}
+    case "n3": return {t:"MAINTENANCE",items:[info("ACCES RESERVE"),info("AU MAINTENEUR (NIV 3)")]};
+  }
+}
+function menuKey(u,k){
+  const st=S.menu[u],top=st[st.length-1],node=menuNode(u,top.id),n=node.items.length;
+  if(k==="up"&&n)top.idx=(top.idx+n-1)%n;
+  else if(k==="down"&&n)top.idx=(top.idx+1)%n;
+  else if(k==="left"){st.pop();if(!st.length)S.menu[u]=false;}
+  else if(k==="right"||/^[1-9]$/.test(k)){
+    if(/^[1-9]$/.test(k)){if(+k>n){flash(u,"CHOIX INEXISTANT");return;}top.idx=+k-1;}
+    const it=node.items[top.idx];
+    if(it&&it.go)st.push({id:it.go,idx:0});
+    else if(it&&it.act){if(it.lvl&&S.lvl[u]<it.lvl){flash(u,`NIVEAU ${it.lvl} REQUIS`);return;}it.act();renderAll();}
+  }
+  if(S.lvl[u]>=2)S.lvlLeft[u]=LVL2_TIME;
+  renderPanels();
+}
+function menuScreen(u){
+  const st=S.menu[u],top=st[st.length-1],node=menuNode(u,top.id),n=node.items.length;
+  if(top.idx>=n)top.idx=Math.max(0,n-1);
+  const lines=[node.t+(n?`  ${top.idx+1}/${n}`:"")];
+  if(!n)lines.push(node.empty||"VIDE","","");
+  else{const start=Math.min(Math.max(0,top.idx-1),Math.max(0,n-3));
+    for(let i=start;i<start+3;i++)lines.push(i<n?`${i===top.idx?">":" "}${n<10?(i+1)+" ":""}${node.items[i].l}`:"");}
+  lines.push(S.msg[u]||(S.entry[u]!==null?foot(u):(u==="cmsi"?"\u2190 ANNULER   \u21B5 VALIDER":"\u25C0 RETOUR   \u25B6 VALIDER")));
+  return lines;
+}
+acts.fdl=u=>{const open=S.ev.cmsi===null;closeScr();if(open){if(evList(u).length)S.ev.cmsi=0;else flash(u,"AUCUN EVENEMENT");}};
+acts.f2=u=>{const open=!S.menu.cmsi;closeScr();if(open)S.menu.cmsi=[{id:"root",idx:0}];};
+acts.resume=u=>{const o=SCR.cmsi!=="resume";closeScr();if(o)SCR.cmsi="resume";};
+acts.usg=u=>{const o=SCR.cmsi!=="usg";closeScr();if(o)SCR.cmsi="usg";};
+const evList=u=>S.log.filter(e=>!e.u||e.u===u);
+function keypress(u,k){
+  if(u==="cmsi"&&defKey(k))return;
+  if(k==="Code"){
+    if(S.lvl[u]>=2){S.lvl[u]=1;S.menu[u]=false;log("info","Retour au niveau 1",u);}
+    else S.entry[u]=S.entry[u]===null?"":null;
+    renderPanels();return;
+  }
+  if(S.entry[u]!==null){
+    if(/^\d$/.test(k)){
+      S.entry[u]+=k;
+      if(S.entry[u].length===4){
+        if(S.entry[u]===CODE){S.lvl[u]=2;S.lvlLeft[u]=LVL2_TIME;log("info","Accès niveau 2 ouvert",u);}
+        else flash(u,"Code incorrect");
+        S.entry[u]=null;
+      }
+    }
+    renderPanels();return;
+  }
+  if(S.menu[u]){menuKey(u,k);return;}
+  const nav={up:-1,left:-1,down:1,right:1}[k];
+  if(nav){
+    if(S.ev[u]!==null){const n=evList(u).length;S.ev[u]=Math.min(Math.max(S.ev[u]+nav,0),n-1);}
+    else{const n=u==="sdi"?alarms().length:zfActive().length;if(n>1)S.sel[u]=(S.sel[u]+nav+n)%n;}
+    renderPanels();return;
+  }
+  flash(u,"Touche sans effet ici");
+}
+const duo=document.getElementById("duo");
+duo.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b||!b.dataset.u)return;
+  const u=b.dataset.u;
+  if(b.dataset.k){keypress(u,b.dataset.k);return;}
+  if(b.dataset.act==="evac"){if(e.detail===0){acts.evac(u);renderAll();}return;}
+  if(b.classList.contains("n2")&&S.lvl[u]<2){S.entry[u]="";flash(u,"Niveau 2 requis : tapez le code");return;}
+  acts[b.dataset.act](u,b);
+  if(S.lvl[u]>=2)S.lvlLeft[u]=LVL2_TIME;
+  renderAll();
+});
+/* appui maintenu 3 s sur Commande évacuation */
+let holdT=null,holdB=null;
+duo.addEventListener("pointerdown",e=>{
+  const b=e.target.closest('[data-act="evac"]');if(!b)return;
+  holdB=b;b.classList.add("holding");flash("cmsi","Maintenir 3 secondes...");
+  holdT=setTimeout(()=>{b.classList.remove("holding");acts.evac("cmsi");renderAll();holdT=null;},3000);
+});
+const cancelHold=()=>{if(holdT){clearTimeout(holdT);holdT=null;flash("cmsi","Appui trop court : maintenir 3 secondes");}if(holdB){holdB.classList.remove("holding");holdB=null;}};
+["pointerup","pointerleave","pointercancel"].forEach(ev=>duo.addEventListener(ev,e=>{if(holdB&&(ev!=="pointerleave"||e.target===holdB))cancelHold();},true));
+duo.addEventListener("contextmenu",e=>{if(e.target.closest(".hold"))e.preventDefault();});
+
+/* ===== HS / défaut ligne ===== */
+let pickMode="hs";
+function openPick(mode){
+  pickMode=mode;
+  document.getElementById("pickT").textContent=mode==="hs"?"Mise hors service":"Défaut ligne";
+  document.getElementById("pickP").textContent=mode==="hs"?"Touchez une zone pour la mettre hors service ou la remettre en service.":"Touchez une zone pour simuler un défaut de ligne ou le supprimer.";
+  renderPick();document.getElementById("ovPick").classList.add("open");
+}
+function renderPick(){
+  const l=document.getElementById("pickList");l.innerHTML="";
+  S.zones.slice().reverse().forEach(z=>{
+    const on=pickMode==="hs"?z.hs:z.fault;
+    const b=document.createElement("button");b.className=on?"sel":"";
+    b.innerHTML=`<span>Zone ${pad(z.id)}, étage ${z.floor}</span><span>${on?(pickMode==="hs"?"Hors service":"En défaut"):"Normal"}</span>`;
+    b.onclick=()=>{
+      if(pickMode==="hs"){z.hs=!z.hs;log("hs",`Zone ${pad(z.id)} ${z.hs?"mise hors service":"remise en service"}`,"sdi");}
+      else{z.fault=!z.fault;if(z.fault)S.sil.sdi=false;log("der",`Défaut ligne zone ${pad(z.id)} ${z.fault?"apparu":"disparu"}`,"sdi");}
+      renderPick();renderAll();
+    };
+    l.appendChild(b);
+  });
+}
+const closeOv=id=>document.getElementById(id).classList.remove("open");
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeOv(b.dataset.close));
+document.querySelectorAll(".ov").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".ov.open").forEach(o=>o.classList.remove("open"));});
+
+/* ===== Formateur ===== */
+document.getElementById("tempoSel").onchange=e=>{S.tempoTotal=+e.target.value;log("info",`Temporisation réglée à ${fmt(S.tempoTotal)}`);};
+document.getElementById("dmSel").onchange=e=>{S.dmTempo=e.target.value==="1";log("info",S.dmTempo?"DM : avec temporisation":"DM : évacuation immédiate");};
+document.querySelector(".trainer").addEventListener("click",e=>{
+  const b=e.target.closest("[data-tr]");if(!b)return;
+  const t=b.dataset.tr;
+  if(t==="mains"){S.mains=!S.mains;if(!S.mains){S.sil.sdi=S.sil.cmsi=false;}log("der",S.mains?"Retour secteur":"Défaut secteur, fonctionnement sur batteries");}
+  if(t==="battery"){S.battery=!S.battery;if(!S.battery){S.sil.sdi=S.sil.cmsi=false;}log("der",S.battery?"Batteries rétablies":"Défaut batteries");}
+  if(t==="ugaf"){S.ugaFault=!S.ugaFault;if(S.ugaFault)S.sil.cmsi=false;log("der",S.ugaFault?"Dérangement UGA (ligne diffuseurs)":"Dérangement UGA disparu","cmsi");}
+  if(t==="fault")openPick("fault");
+  if(t==="sound")S.sound=!S.sound;
+  if(t==="restart"){init();log("info","Nouvel exercice : système en veille");}
+  renderAll();
+});
+
+/* ===== Rendu ===== */
+const led=(c,on,bl)=>`<span class="led ${c} ${on?"on":""} ${on&&bl?"blink":""}"></span>`;
+const li=a=>a.map(([l,t])=>`<li>${l}${t}</li>`).join("");
+const hhmmss=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+function setLcd(u,lines){for(let i=0;i<5;i++)document.getElementById(`${u}-l${i+1}`).textContent=lines[i]||"";}
+function foot(u){if(u==="cmsi"&&S.abBuf!=null)return "CODE A/B : "+"*".repeat(S.abBuf.length)+"_";return S.entry[u]!==null?"CODE : "+"*".repeat(S.entry[u].length)+"_":`NIV ${S.lvl[u]}${S.lvl[u]>=2?" ("+fmt(S.lvlLeft[u])+")":""}  ${hhmmss(new Date())}`;}
+function sysLeds(u,L,der,extra){
+  return [[led("a",L||der,!S.sil[u]&&!L),"Dérangement"],[led("a",L||!S.mains),"Défaut secteur"],[led("a",L||!S.battery),"Défaut batteries"],
+    [led("a",L||(!S.mains&&!S.battery)),"Système hors service"],[led("a",L||extra),"Hors service"],[led("a",L),"Test"],[led("g",true),"Sous tension"]];
+}
+function evScreen(u){
+  const l=evList(u),e=l[S.ev[u]];
+  return [`EVENEMENT ${S.ev[u]+1}/${l.length}`,hhmmss(e.t),e.text,"FLECHES : DEFILER"];
+}
+function renderPanels(){
+  const A=alarms(), Ls=S.lamp.sdi, Lc=S.lamp.cmsi, full=Array(4).fill("████████████████████████");
+  document.getElementById("sdi-leds").innerHTML=li([[led("r",Ls||A.length>0,!S.sil.sdi&&!Ls),"Feu"],...sysLeds("sdi",Ls,derangSdi(),hsZones().length>0)]);
+  let zl="";
+  for(let f=NF;f>=1;f--){
+    zl+=`<span class="fl">Ét. ${f}</span>`;
+    for(let z=1;z<=NZ;z++){
+      const zo=S.zones[(f-1)*NZ+z-1];
+      zl+=`<span class="zl">${zoneFire(zo.id)?led("r",true):(zo.hs||zo.fault)?led("a",true,zo.fault):led("r",Ls)}${pad(zo.id)}</span>`;
+    }
+  }
+  document.getElementById("sdi-zl").innerHTML=zl;
+  if(Ls)setLcd("sdi",full);
+  else if(S.ev.sdi!==null)setLcd("sdi",evScreen("sdi"));
+  else if(S.menu.sdi)setLcd("sdi",menuScreen("sdi"));
+  else{
+    let l1,l2;
+    if(A.length){
+      if(S.sel.sdi>=A.length)S.sel.sdi=0;
+      const a=A[S.sel.sdi],z=S.zones[a.zone-1];
+      l1=`FEU ${S.sel.sdi+1}/${A.length} ZONE ${pad(z.id)} ET ${z.floor}`;
+      l2=`${a.type==="dm"?"DECLENCHEUR MANUEL":"DETECTEUR"} ADR ${pad(a.addr)}`;
+    }else if(derangSdi()){
+      const n=(!S.mains)+(!S.battery)+faultZones().length;
+      l1=`${n} DERANGEMENT(S)`;l2=!S.mains?"DEFAUT SECTEUR":!S.battery?"DEFAUT BATTERIES":`DEFAUT LIGNE ZONE ${pad(faultZones()[0].id)}`;
+    }else{l1="VEILLE";l2=hsZones().length?`${hsZones().length} ZONE(S) HORS SERVICE`:"SYSTEME NORMAL";}
+    setLcd("sdi",[l1,l2,S.msg.sdi||(A.length>1?"FLECHES : AUTRES ALARMES":""),foot("sdi")]);
+  }
+  const Z=zfActive();
+  document.getElementById("cmsi-leds").innerHTML=li(sysLeds("cmsi",Lc,derangCmsi(),false));
+  document.getElementById("uga-leds").innerHTML=li([[led("r",Lc||S.tempoRun||S.uga,!Lc),"Alarme"],[led("r",Lc||S.uga),"Évacuation générale"],[led("a",Lc||S.ugaFault),"Dérangement UGA"]]);
+  ZF.forEach(z=>{const s=S.zf[z.id];document.getElementById("zf-"+z.id).innerHTML=led("r",Lc||s!=="veille",s==="attente"&&!Lc);});
+  if(Lc)setLcd("cmsi",full);
+  else if(S.ev.cmsi!==null)setLcd("cmsi",evScreen("cmsi"));
+  else if(S.menu.cmsi)setLcd("cmsi",menuScreen("cmsi"));
+  else if(SCR.cmsi)setLcd("cmsi",scrScreen());
+  else{
+    const l1=S.uga?"EVACUATION GENERALE":S.tempoRun?"ALARME RESTREINTE":S.procAck?"PROCESSUS ACQUITTE":Z.length?"MISE EN SECURITE":derangCmsi()?"DERANGEMENT":"VEILLE";
+    let l2=S.tempoRun?`TEMPORISATION ${fmt(S.tempoLeft)}`:S.uga?"DIFFUSEURS EN SERVICE":"";
+    if(!l2&&Z.length){if(S.sel.cmsi>=Z.length)S.sel.cmsi=0;const z=Z[S.sel.cmsi];l2=`${z.lbl} ${S.sel.cmsi+1}/${Z.length}`;}
+    if(!l2)l2=derangCmsi()?(!S.mains?"DEFAUT SECTEUR":!S.battery?"DEFAUT BATTERIES":"DERANGEMENT UGA"):"AUCUNE FONCTION ACTIVE";
+    setLcd("cmsi",[l1,l2,S.msg.cmsi||(Z.length?`${Z.length} FONCTION(S) ACTIVE(S)`:""),foot("cmsi")]);
+  }
+  ["sdi","cmsi"].forEach(u=>document.querySelectorAll(`.n2[data-u="${u}"]`).forEach(k=>k.classList.toggle("locked",S.lvl[u]<2)));
+}
+function renderBuilding(){
+  document.getElementById("topbar").innerHTML=["zc","m1","m2"].map(id=>{const z=ZF.find(x=>x.id===id),s=S.zf[id];return `<span class="chip ${s}">${z.lbl.charAt(0)+z.lbl.slice(1).toLowerCase()} : ${stateTxt(z,s)}</span>`;}).join("")+(S.uga?'<span class="chip uga">Diffuseurs actifs</span>':"");
+  let h="";
+  for(let f=NF;f>=1;f--){
+    const c=ZF.find(x=>x.id==="c"+f),s=S.zf[c.id];
+    h+=`<div class="floor ${S.uga?"evac":""}"><div class="floor-head"><b>Étage ${f}</b><span class="chip ${s}">Canton ${f} ${stateTxt(c,s)}</span></div><div class="zones">`;
+    for(let z=1;z<=NZ;z++){
+      const zo=S.zones[(f-1)*NZ+z-1];
+      h+=`<div class="zone ${zoneFire(zo.id)?"fire":""} ${zo.hs?"hs":""} ${zo.fault?"fault":""}"><div class="zone-name">Zone ${pad(zo.id)}<em>${zo.hs?"HS":zo.fault?"défaut":""}</em></div><div class="pts">`;
+      S.points.forEach((p,i)=>{
+        if(p.zone!==zo.id)return;
+        h+=`<button class="pt ${p.type==="dm"?"dm":""} ${p.alarm?"alarm":""}" data-i="${i}" aria-label="${p.type==="dm"?"Déclencheur manuel":"Détecteur "+p.addr}, zone ${zo.id}, étage ${f}${p.alarm?", en alarme":""}">${p.type==="dm"?"DM":p.addr}</button>`;
+      });
+      h+=`</div></div>`;
+    }
+    h+=`</div></div>`;
+  }
+  document.getElementById("building").innerHTML=h;
+}
+document.getElementById("building").addEventListener("click",e=>{const b=e.target.closest("[data-i]");if(b)trigger(S.points[+b.dataset.i]);});
+function renderLog(){
+  document.getElementById("log").innerHTML=S.log.map(e=>`<li><time>${hhmmss(e.t)}</time><span class="${e.type}">${e.u?`<span class="tag">${e.u==="sdi"?"SDI":"CMSI"}</span>`:""}${e.text}</span></li>`).join("");
+}
+function renderTrainer(){
+  const t=(k,on)=>document.querySelector(`[data-tr="${k}"]`).classList.toggle("active",on);
+  t("mains",!S.mains);t("battery",!S.battery);t("fault",faultZones().length>0);t("ugaf",S.ugaFault);
+  const sb=document.querySelector('[data-tr="sound"]');sb.textContent=S.sound?"Son activé":"Son coupé";sb.classList.toggle("active",!S.sound);
+}
+function renderAll(){renderPanels();renderBuilding();renderLog();renderTrainer();}
+
+setInterval(()=>{
+  if(S.tempoRun&&!S.uga){S.tempoLeft--;if(S.tempoLeft<=0){S.tempoLeft=0;startUGA("fin de temporisation");renderAll();return;}}
+  ["sdi","cmsi"].forEach(u=>{if(S.lvl[u]>=2){S.lvlLeft[u]--;if(S.lvlLeft[u]<=0){S.lvl[u]=1;S.menu[u]=false;log("info","Niveau 2 refermé automatiquement",u);}}});
+  renderPanels();
+},1000);
+
+/* ===== Sons ===== */
+let ac,g1,g2,eO,eG;
+function osc(type,f,g){const o=ac.createOscillator();o.type=type;o.frequency.value=f;o.connect(g).connect(ac.destination);o.start();return o;}
+function ensureAudio(){
+  if(ac){if(ac.state==="suspended")ac.resume();return;}
+  try{ac=new (window.AudioContext||window.webkitAudioContext)();
+    g1=ac.createGain();g1.gain.value=0;osc("square",2300,g1);
+    g2=ac.createGain();g2.gain.value=0;osc("square",1700,g2);
+    eG=ac.createGain();eG.gain.value=0;eO=osc("triangle",554,eG);
+  }catch(err){ac=null;}
+}
+document.addEventListener("pointerdown",ensureAudio);
+document.addEventListener("keydown",ensureAudio);
+setInterval(()=>{
+  if(!ac)return;
+  const t=performance.now(),now=ac.currentTime;
+  let p1=false,p2=false;
+  if(S.sound&&!S.sil.sdi){if(alarms().length)p1=(t%500)<250;else if(derangSdi())p1=(t%3000)<300;}
+  if(S.sound&&!S.sil.cmsi){if(S.tempoRun)p2=((t+250)%1000)<200;else if(derangCmsi())p2=((t+1500)%3000)<300;}
+  g1.gain.setTargetAtTime(p1?0.03:0,now,0.004);
+  g2.gain.setTargetAtTime(p2?0.03:0,now,0.004);
+  eO.frequency.setValueAtTime((t%500)<100?554:440,now);
+  eG.gain.setTargetAtTime(S.sound&&S.uga?0.12:0,now,0.004);
+},25);
+
+init();
+log("info","Système en veille");
+renderAll();
+</script>
+</body>
+</html>
